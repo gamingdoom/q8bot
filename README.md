@@ -1,5 +1,8 @@
 # Q8bot Quadruped
 
+**Looking for hardware files? CAD, STL, and PCB files can be found in the [Releases](https://github.com/EricYufengWu/q8bot/releases)
+ section of this repository.**
+
 Q8bot is a miniature quadruped robot with the size and weight comparable to a modern smartphone. This robot is capable of dynamic movements like walking, trotting, bounding, jumping, and more. It also has NO WIRES AND CABLES - everything is directly plugged into the center PCB, greatly reducing complexity, weight, and cost. The current **[Bill of Materials (BOM)](https://docs.google.com/spreadsheets/d/1M1K_Dghia-Mn2t4RStW8juN6r4e3I3OBy6M_fPFHzs8/edit?usp=sharing)**, without optimization, ranges between $300 - $400 depending on the listed options. 
 
 <p align="center">
@@ -8,15 +11,11 @@ Q8bot is a miniature quadruped robot with the size and weight comparable to a mo
   <img src="docs/public/Q8bot_Components.jpg" alt="Image 3" width="49%">
 </p>
 
-## LATEST UPDATE: 11/06/2025
+## LATEST UPDATE: 01/01/2026
 
-I've published python-tool v1.2.0 in Releases. It adds support for common joysticks, including Xbox controllers and Nintendo Switch Joy‑Con. Note that you'll still need a laptop and a wireless dongle to run Q8bot—the joystick provides more granular movement control than the discrete WASD keyboard commands.
+🎉 **The Q8bot design paper is now available on IEEE Xplore.** Please see the publication section for links.
 
-The updated python-tool also has a refreshed pygame interface that is no longer a blank screen :D.
-<p align="center">
-  <img src="docs/public/sw_joystick_screen.jpg" alt="Image 4" width="49%">
-  <img src="docs/public/Q8bot_joystick_update.gif" alt="Image 5" width="49%">
-</p>
+For research or projects related to Q8bot, please consider citing our work! Citations help support continued open-source development and help the project reach a wider audience.
 
 **For a full history of updates, please go to [UPDATES.md](UPDATES.md)**
 
@@ -33,8 +32,8 @@ Q8bot is lucky to be featured in a number of blog posts:
 
 
 ## Publications
-- Design: https://arxiv.org/abs/2508.01149
-- Control & Data Acquisition: https://ieeexplore.ieee.org/abstract/document/11078123/
+- Design: [IROS2025 via IEEE Xplore](https://ieeexplore.ieee.org/abstract/document/11246322), [arXiv](https://arxiv.org/abs/2508.01149).
+- Control & Data Acquisition: [UR2025 via IEEE Xplore](https://ieeexplore.ieee.org/abstract/document/11078123/).
 
 
 ## Open Source Information
@@ -83,7 +82,7 @@ have been tested together.
 
 | Component | Version | Tag / Link |
 |------------|----------|------------|
-| **Hardware** | v2.4 | [hw-v2.4](https://github.com/EricYufengWu/q8bot/releases/tag/hw-v2.4) |
+| **Hardware** | v2.5 | [hw-v2.5](https://github.com/EricYufengWu/q8bot/releases/tag/hw-v2.5) |
 | **Firmware** | v2.0.1 | [fw-v2.0.1](https://github.com/EricYufengWu/q8bot/releases/tag/fw-v2.0.1) |
 | **Python Tools** | v1.1.0 | [python-tools-v1.1.0](https://github.com/EricYufengWu/q8bot/releases/tag/python-tools-v1.1.0) |
 

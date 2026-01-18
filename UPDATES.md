@@ -2,6 +2,16 @@
 
 **[BACK TO PROJECT README](README.md)**
 
+### 11/06/2025 Python Controller Improvements
+
+I've published python-tool v1.2.0 in Releases. It adds support for common joysticks, including Xbox controllers and Nintendo Switch Joy‑Con. Note that you'll still need a laptop and a wireless dongle to run Q8bot—the joystick provides more granular movement control than the discrete WASD keyboard commands.
+
+The updated python-tool also has a refreshed pygame interface that is no longer a blank screen :D.
+<p align="center">
+  <img src="docs/public/sw_joystick_screen.jpg" alt="Image 4" width="49%">
+  <img src="docs/public/Q8bot_joystick_update.gif" alt="Image 5" width="49%">
+</p>
+
 ### 10/11/2025 Repository Update
 Repository Restructuring is complete! 
 
