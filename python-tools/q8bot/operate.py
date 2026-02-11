@@ -110,14 +110,15 @@ gait_names = list(GAITS.keys())
 gait_manager = GaitManager(leg, GAITS)
 
 # Starting location of leg end effector in x and y
-first_gait_params = GAITS[gait_names[0]]
+curr_gait = gait_names[0]
+first_gait_params = GAITS[curr_gait]
 pos_x = first_gait_params[1]
 pos_y = first_gait_params[2]
 move_xy(pos_x, pos_y, 1000)
 
 # Pre-calculate trajectories for default gait
-if not gait_manager.load_gait(gait_names[0]):
-    log.error(f"Failed to load default gait: {gait_names[0]}")
+if not gait_manager.load_gait(curr_gait):
+    log.error(f"Failed to load default gait: {curr_gait}")
     sys.exit(1)
 
 time.sleep(2)
@@ -141,21 +142,12 @@ while True:
         requested_direction = input_handler.get_movement_direction()
 
         if requested_direction:
-            # Start or switch movement direction
-            if gait_manager.start_movement(requested_direction):
-                # Execute current trajectory
-                pos = gait_manager.tick()
-                if pos:
-                    q8.move_all(pos, 0, record)
-            else:
-                # Failed to start movement
-                movement = False
+            q8.start_gait(curr_gait, requested_direction)
         else:
-            # No movement input - transition to idle
-            move_xy(pos_x, pos_y, 0)
+            q8.stop_gait()
             q8.finish_recording()
             record = False
-            gait_manager.stop()
+
             movement = False
     else:
         # Check for movement input
