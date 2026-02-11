@@ -362,11 +362,11 @@ void setup() {
 
   taskCreated = xTaskCreate(
     gaitTask,             // Task function
-    "Gait",                   // Task name
-    4096,               // Stack size (bytes) - larger for gait logic
-    NULL,               // Parameters
+    "Gait",               // Task name
+    4096,                 // Stack size (bytes) - larger for gait logic
+    NULL,                 // Parameters
     3,                    // Priority (high - manages movement)
-    NULL               // Task handle
+    NULL                  // Task handle
   );
   if (taskCreated != pdPASS) {
     Serial.println("[RTOS] Failed to create gait task");

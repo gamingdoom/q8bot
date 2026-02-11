@@ -22,7 +22,7 @@ L1 = 25             # Upper leg length
 L2 = 40             # Lower leg length
 
 # Pygame config
-SPEED = 200
+SPEED = 20
 res = 0.2
 
 # Helper Functions
@@ -116,6 +116,8 @@ pos_x = first_gait_params[1]
 pos_y = first_gait_params[2]
 move_xy(pos_x, pos_y, 1000)
 
+gait_and_direction = ""
+
 # Pre-calculate trajectories for default gait
 if not gait_manager.load_gait(curr_gait):
     log.error(f"Failed to load default gait: {curr_gait}")
@@ -141,13 +143,13 @@ while True:
         # Get requested direction from input handler
         requested_direction = input_handler.get_movement_direction()
 
-        if requested_direction:
+        if requested_direction and curr_gait + requested_direction != gait_and_direction:
             q8.start_gait(curr_gait, requested_direction)
+            gait_and_direction = curr_gait + requested_direction
         else:
             q8.stop_gait()
             q8.finish_recording()
             record = False
-
             movement = False
     else:
         # Check for movement input
