@@ -4,9 +4,16 @@
   Released into the public domain.
 */
 
+#include <cassert>
+
 #include <Arduino.h>
 #include <Dynamixel2Arduino.h>
 #include <q8Dynamixel.h>
+#include <esp_now.h>
+
+#include "gait_lut.h"
+#include "helpers.h"
+#include "communications.h"
 
 using namespace ControlTableItem;
 
@@ -149,7 +156,7 @@ uint16_t* q8Dynamixel::syncRead(){
   uint16_t* byteArray = new uint16_t[_idCount * 2];
 
   recv_cnt = _dxl.fastSyncRead(&_sr_infos);
-  if(recv_cnt = _idCount){
+  if (recv_cnt == _idCount) {
     for (size_t i = 0; i < _idCount; i++){
       // cast to uint16_t since values never exceed 65535 in robot configuration
       byteArray[i*2] = static_cast<uint16_t>(_sr_data[i].present_current + 10000);
@@ -192,49 +199,168 @@ void q8Dynamixel::jump(){
   _prevProfile = 500;
 }
 
-uint8_t q8Dynamixel::parseData(const char* myData) {
-  char* token = strtok(const_cast<char*>(myData), ",");
-  int index = 0;
-  int check = 0;
-  
-  while (token != nullptr && index < 8) {  // First 8 contain joint positions
-    _posArray[index++] = _deg2Dxl(std::atof(token));
-    token = strtok(nullptr, ",");
-  }
-  if (token != nullptr) {                  // 9th value is for special token
-    _specialCmd = std::atoi(token);
-    token = strtok(nullptr, ",");
-    if (_specialCmd == 1){           // Battery
-      return 1;
-    } else if (_specialCmd == 2){    // Record
-      check = 2;
-    } else if (_specialCmd == 3){    // Send recorded
-      return 3;
-    } else if (_specialCmd == 4){    // Jump
+void q8Dynamixel::handleDataMessage(ESPNowMessage msg){
+  lastHeartbeatReceived = millis();  // Any DATA also counts as "alive"
+  memcpy(&theirMsg, msg.data, sizeof(theirMsg));
+  Message parsed = Message(msg.data);
+
+  // myMsg params
+  myMsg.id = 0;  // Server ID
+
+  switch (parsed.GetCommand()) {
+    case MOVE: {
+      assert(parsed.GetPayloadLen() == 8);
+
+      bulkWrite(parsed.GetPayloadInts());
+      break;
+    }
+
+    case BATTERY: {
+      // Send battery level
+      queuePrint(MSG_DEBUG, "[DATA] Send battery level\n");
+      myMsg.data[0] = (uint16_t)get_fuel_gauge().percent();
+      esp_now_send(clientMac, (uint8_t*)&myMsg, sizeof(myMsg));
+      break;
+    }
+
+    case RECORD: {
+      // Sync read position data
+      uint16_t* posArray = syncRead();
+      if (rData != nullptr) {
+        // If rData is not nullptr, resize posArray to append new data
+        uint16_t* newData = new uint16_t[masterSize + smallerSize];
+        if (newData == nullptr) {
+          queuePrint(MSG_DEBUG, "[ERROR] Memory allocation failed, dropping data\n");
+          delete[] posArray;
+          break;
+        }
+        memcpy(newData, rData, masterSize * sizeof(uint16_t));
+        for (size_t j = 0; j < smallerSize; ++j) {
+          newData[masterSize + j] = posArray[j];
+        }
+        delete[] rData;
+        rData = newData;
+        masterSize += smallerSize;
+      } else {
+        // If rData is nullptr, initialize it for the first time
+        rData = new uint16_t[smallerSize];
+        if (rData == nullptr) {
+          queuePrint(MSG_DEBUG, "[ERROR] Memory allocation failed\n");
+          delete[] posArray;
+          break;
+        }
+        for (size_t j = 0; j < smallerSize; ++j) {
+          rData[j] = posArray[j];
+        }
+        masterSize = smallerSize;
+      }
+      delete[] posArray;
+      break;
+    }
+
+    case SEND_RECORDED: {
+      // Send all recorded data in chunks
+      if (rData != nullptr) {
+        queuePrint(MSG_DEBUG, "[DATA] Sending %d recorded data points\n", masterSize);
+
+        size_t totalSize = masterSize;  // total data in rData
+        size_t chunkSize = 100;         // Chunk size for each ESPNow send
+        size_t offset = 0;              // To track the position in rData
+
+        // Loop to send the data in chunks
+        while (offset < totalSize) {
+          // If rData is less than chunk size then use its size instead.
+          size_t currentChunkSize = (totalSize - offset < chunkSize) ? (totalSize - offset) : chunkSize;
+          memcpy(myMsg.data, &rData[offset], currentChunkSize * sizeof(uint16_t));
+          // If the chunk is smaller than 100, fill the remaining spaces with zeros
+          if (currentChunkSize < chunkSize) {
+            memset(&myMsg.data[currentChunkSize], 0, (chunkSize - currentChunkSize));
+          }
+          // Send the chunk via ESP-NOW
+          esp_now_send(clientMac, (uint8_t*)&myMsg, sizeof(myMsg));
+          // Update offset and Reset myData
+          offset += currentChunkSize;
+          memset(myMsg.data, 0, sizeof(myMsg.data));
+        }
+        delete[] rData;
+        rData = nullptr;
+        masterSize = 0;
+      }
+
+      break;
+    }
+
+    case JUMP: {
       jump();
-      return 0;
+
+      break;
+    }
+
+    case SET_TORQUE: {
+      assert(parsed.GetPayloadLen() == 1);
+      _torqueFlag = bool(parsed.GetPayloadInts()[0]);
+
+      if (_torqueFlag != _prevTorqueFlag){
+        Serial.println(_torqueFlag ? "[ROBOT] Torque on" : "[ROBOT] Torque off");
+        toggleTorque(_torqueFlag);
+        _prevTorqueFlag = _torqueFlag;
+      }
+
+      break;
+    }
+
+    case SET_PROFILE: {
+      assert(parsed.GetPayloadLen() == 1);
+      _profile = parsed.GetPayloadInts()[0];
+
+      if (_profile != _prevProfile){
+        Serial.print("[ROBOT] Profile changed: "); Serial.println(_profile);
+        setProfile(_profile);
+        _prevProfile = _profile;
+      }
+
+      break;
+    }
+
+    case SET_GAIT: {
+      assert(parsed.GetPayloadLen() <= 1);
+
+      _gaitStepIdx = 0;
+      if (parsed.GetPayloadLen() == 0){
+        _using_gait = false;
+
+        // Return to idle state
+        bulkWrite(_idleArray);
+      } else {
+        _using_gait = true;
+        _gait = static_cast<gait_t>(parsed.GetPayloadInts()[0]);
+      }
+      
+      break;
     }
   }
-  if (token != nullptr) {                   // 10th value is vel/acc profiles
-    _profile = std::atoi(token);
-    token = strtok(nullptr, ",");
-    if (_profile != _prevProfile){
-      Serial.print("[ROBOT] Profile changed: "); Serial.println(_profile);
-      setProfile(_profile);
-      _prevProfile = _profile;
-    }
+}
+
+bool q8Dynamixel::getGaitActive() {
+  return _using_gait;
+}
+
+void q8Dynamixel::performNextGaitMove() {
+  if (!_using_gait) return;
+
+  unsigned short offset = GaitLUTOffsets[_gait];
+  
+  unsigned short len = offset;
+  if (_gait >= 1) {
+    len = GaitLUTOffsets[_gait] - GaitLUTOffsets[_gait - 1];
   }
-  if (token != nullptr) {                    // 1th value is torque enable/disable
-    _torqueFlag = (std::atoi(token) == 1);
-    if (_torqueFlag != _prevTorqueFlag){
-      Serial.println(_torqueFlag ? "[ROBOT] Torque on" : "[ROBOT] Torque off");
-      toggleTorque(_torqueFlag);
-      _prevTorqueFlag = _torqueFlag;
-      return 0;
-    }
+
+  bulkWrite(const_cast<int32_t*>(GaitLUT[offset + _gaitStepIdx]));
+
+  _gaitStepIdx++;
+  if (_gaitStepIdx >= len) {
+    _gaitStepIdx = 0;
   }
-  bulkWrite(_posArray);
-  return check - 0;
 }
 
 int32_t q8Dynamixel::_deg2Dxl(float deg){
