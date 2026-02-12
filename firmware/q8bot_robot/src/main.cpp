@@ -275,7 +275,8 @@ void serialOutputTask(void* parameter) {
 
 void gaitTask(void* parameter) {
   while (true) {
-    if (q8.getGaitActive()) {
+    unsigned long timeSinceLastMsg = millis() - lastHeartbeatReceived;
+    if (q8.getGaitActive() && timeSinceLastMsg < HEARTBEAT_TIMEOUT_ROBOT) {
       q8.performNextGaitMove();
     }
 
