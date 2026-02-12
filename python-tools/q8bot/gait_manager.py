@@ -6,8 +6,6 @@ This module manages gait trajectories, movement state, and direction switching
 for cyclic locomotion patterns.
 '''
 
-print(__name__)
-
 from collections import OrderedDict
 
 if __name__ == "gait_manager":
