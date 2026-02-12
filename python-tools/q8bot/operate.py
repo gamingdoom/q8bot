@@ -146,15 +146,17 @@ while True:
         if requested_direction and curr_gait + requested_direction != gait_and_direction:
             q8.start_gait(curr_gait, requested_direction)
             gait_and_direction = curr_gait + requested_direction
-        else:
+        elif not requested_direction:
             q8.stop_gait()
             q8.finish_recording()
             record = False
             movement = False
+            gait_and_direction = ""
     else:
         # Check for movement input
         if input_handler.is_movement_input():
             movement = True
+
         # Check action inputs using generalized interface
         elif input_handler.is_action_pressed('reset'):
             log.info("Gait Reset")
@@ -169,6 +171,7 @@ while True:
             # Cycle to next gait
             gait_names.append(gait_names.pop(0))
             new_gait = gait_names[0]
+            curr_gait = new_gait
 
             # Load new gait
             if gait_manager.load_gait(new_gait):

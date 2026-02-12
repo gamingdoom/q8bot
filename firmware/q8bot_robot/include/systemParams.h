@@ -25,6 +25,11 @@ struct DataMessage{
   uint8_t id;
   uint16_t data[100];
 };
+struct ByteMessage{
+  uint8_t msgType = DATA;
+  uint8_t id;
+  uint8_t data[100];
+};
 struct HeartbeatMessage{
   uint8_t msgType = HEARTBEAT;
   uint8_t id;
@@ -44,7 +49,7 @@ static char intStr[10];
 // ESP-Now Comms
 static bool incoming = false;
 static PairingMessage pairingData;
-static CharMessage theirMsg;
+static ByteMessage theirMsg;
 static DataMessage myMsg;
 static int chan = 1;
 static int paired = false;

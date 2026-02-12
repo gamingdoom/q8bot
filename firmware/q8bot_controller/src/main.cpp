@@ -108,15 +108,14 @@ void commandForwardingTask(void *param) {
       else if (paired) {
         // Forward commands to robot
         Serial.readBytes(sendMsg.data, 2);
-        int payload_bytes = sendMsg.data[1] * 4;
+        int payload_bytes = sendMsg.data[1] * sizeof(int32_t);
 
         if (payload_bytes > sizeof(sendMsg.data) - 2) {
-          queuePrint(MSG_ERROR, "[ERROR] Command too long!\n");
+          queuePrint(MSG_DEBUG, "Command too long!\n");
           continue;
         }
 
         Serial.readBytes(sendMsg.data + 2, payload_bytes);
-        sendMsg.data[payload_bytes + 2] = '\0';
 
         // Send to robot's MAC address
         sendMsg.msgType = DATA;
