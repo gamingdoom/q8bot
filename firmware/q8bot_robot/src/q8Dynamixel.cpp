@@ -14,6 +14,7 @@
 #include "gait_lut.h"
 #include "helpers.h"
 #include "communications.h"
+#include "systemParams.h"
 
 using namespace ControlTableItem;
 
@@ -202,24 +203,28 @@ void q8Dynamixel::jump(){
 void q8Dynamixel::handleDataMessage(ESPNowMessage msg){
   lastHeartbeatReceived = millis();  // Any DATA also counts as "alive"
   memcpy(&theirMsg, msg.data, sizeof(theirMsg));
-  Message parsed = Message(msg.data);
+  Message parsed = Message(theirMsg.data);
 
   // myMsg params
   myMsg.id = 0;  // Server ID
 
   switch (parsed.GetCommand()) {
     case MOVE: {
-      assert(parsed.GetPayloadLen() == 8);
+      assert(parsed.GetPayloadLen() == 8u);
 
-      bulkWrite(parsed.GetPayloadInts());
+      int32_t dxl[8];
+      for (uint8_t i = 0; i < 8; ++i){
+        dxl[i] = _deg2Dxl(parsed.GetPayloadFloats()[i]);
+      }
+
+      bulkWrite(dxl);
       break;
     }
 
     case BATTERY: {
       // Send battery level
-      queuePrint(MSG_DEBUG, "[DATA] Send battery level\n");
-      myMsg.data[0] = (uint16_t)get_fuel_gauge().percent();
-      esp_now_send(clientMac, (uint8_t*)&myMsg, sizeof(myMsg));
+      myMsg.data[0] = (uint16_t)FuelGauge.percent();
+      esp_now_send(msg.mac, (uint8_t*)&myMsg, sizeof(myMsg));
       break;
     }
 
@@ -297,7 +302,7 @@ void q8Dynamixel::handleDataMessage(ESPNowMessage msg){
     }
 
     case SET_TORQUE: {
-      assert(parsed.GetPayloadLen() == 1);
+      assert(parsed.GetPayloadLen() == 1u);
       _torqueFlag = bool(parsed.GetPayloadInts()[0]);
 
       if (_torqueFlag != _prevTorqueFlag){
@@ -310,7 +315,7 @@ void q8Dynamixel::handleDataMessage(ESPNowMessage msg){
     }
 
     case SET_PROFILE: {
-      assert(parsed.GetPayloadLen() == 1);
+      assert(parsed.GetPayloadLen() == 1u);
       _profile = parsed.GetPayloadInts()[0];
 
       if (_profile != _prevProfile){
@@ -323,17 +328,25 @@ void q8Dynamixel::handleDataMessage(ESPNowMessage msg){
     }
 
     case SET_GAIT: {
-      assert(parsed.GetPayloadLen() <= 1);
+      assert(parsed.GetPayloadLen() <= 1u);
 
       _gaitStepIdx = 0;
       if (parsed.GetPayloadLen() == 0){
         _using_gait = false;
 
         // Return to idle state
-        bulkWrite(_idleArray);
+        queuePrint(MSG_DEBUG, "[GAIT] Returning to idle!\n");
+        
+        int32_t idle[8];
+        for (uint8_t i = 0; i < 8; i++){
+          idle[i] = _deg2Dxl(GaitIdleLUT[_gait][i]);
+        }
+
+        bulkWrite(idle);
       } else {
         _using_gait = true;
         _gait = static_cast<gait_t>(parsed.GetPayloadInts()[0]);
+        queuePrint(MSG_DEBUG, "[GAIT] Gait set to %d\n", _gait);
       }
       
       break;
@@ -348,14 +361,17 @@ bool q8Dynamixel::getGaitActive() {
 void q8Dynamixel::performNextGaitMove() {
   if (!_using_gait) return;
 
-  unsigned short offset = GaitLUTOffsets[_gait];
+  uint32_t offset = GaitLUTOffsets[_gait];
   
-  unsigned short len = offset;
-  if (_gait >= 1) {
-    len = GaitLUTOffsets[_gait] - GaitLUTOffsets[_gait - 1];
+  uint32_t len = GaitLUTOffsets[_gait + 1] - offset;
+
+  int32_t dxl[8];
+
+  for (uint8_t i = 0; i < 8; i++){
+    dxl[i] = _deg2Dxl(GaitLUT[offset + _gaitStepIdx][i]);
   }
 
-  bulkWrite(const_cast<int32_t*>(GaitLUT[offset + _gaitStepIdx]));
+  bulkWrite(dxl);
 
   _gaitStepIdx++;
   if (_gaitStepIdx >= len) {

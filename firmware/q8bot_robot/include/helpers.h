@@ -10,12 +10,13 @@
 static macStorage storage;
 static bool started = false;  // Track robot start state
 
+extern MAX1704X FuelGauge;
+
 void queuePrint(SerialMsgType type, const char* format, ...);
 bool addPeer(const uint8_t* mac);
 void unpair();
 void displayReading();
 void addElementToArray(uint16_t*& array, size_t& currentSize, uint16_t newElement);
-
-MAX1704X get_fuel_gauge();
+void displayReading();
 
 #endif

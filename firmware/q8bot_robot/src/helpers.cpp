@@ -1,6 +1,5 @@
 #include <Arduino.h>
 #include <esp_now.h>
-#include <MAX17043.h>
 
 #include "helpers.h"
 
@@ -50,6 +49,18 @@ void addElementToArray(uint16_t*& array, size_t& currentSize, uint16_t newElemen
     currentSize++;
 }
 
-MAX1704X get_fuel_gauge() {
-  return FuelGauge;
+void displayReading()
+{
+  // MAX17043 Demo code. Used once and good for debugging
+  Serial.println("Device Reading:");
+  // Serial.print("Address:       0x"); Serial.println(FuelGauge.address(), HEX);
+  // Serial.print("Version:       "); Serial.println(FuelGauge.version());
+  // Serial.print("ADC:           "); Serial.println(FuelGauge.adc());
+  Serial.print("Voltage:       "); Serial.print(FuelGauge.voltage()); Serial.println(" mV");
+  Serial.print("Percent:       "); Serial.print(FuelGauge.percent()); Serial.println("%");
+  // Serial.print("Is Sleeping:   "); Serial.println(FuelGauge.isSleeping() ? "Yes" : "No");
+  // Serial.print("Alert:         "); Serial.println(FuelGauge.alertIsActive() ? "Yes" : "No");
+  // Serial.print("Threshold:     "); Serial.print(FuelGauge.getThreshold()); Serial.println("%");
+  // Serial.print("Compensation:  0x"); Serial.println(FuelGauge.compensation(), HEX);
+  Serial.println();
 }

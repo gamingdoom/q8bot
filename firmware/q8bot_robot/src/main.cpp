@@ -31,24 +31,7 @@ EventGroupHandle_t eventGroup = NULL;
 // Robot State
 volatile RobotState robotState = STATE_UNPAIRED;
 
-// ============================================================================
-// Helpers
-// ============================================================================
-void displayReading()
-{
-  // MAX17043 Demo code. Used once and good for debugging
-  Serial.println("Device Reading:");
-  // Serial.print("Address:       0x"); Serial.println(get_fuel_gauge().address(), HEX);
-  // Serial.print("Version:       "); Serial.println(get_fuel_gauge().version());
-  // Serial.print("ADC:           "); Serial.println(get_fuel_gauge().adc());
-  Serial.print("Voltage:       "); Serial.print(get_fuel_gauge().voltage()); Serial.println(" mV");
-  Serial.print("Percent:       "); Serial.print(get_fuel_gauge().percent()); Serial.println("%");
-  // Serial.print("Is Sleeping:   "); Serial.println(get_fuel_gauge().isSleeping() ? "Yes" : "No");
-  // Serial.print("Alert:         "); Serial.println(get_fuel_gauge().alertIsActive() ? "Yes" : "No");
-  // Serial.print("Threshold:     "); Serial.print(get_fuel_gauge().getThreshold()); Serial.println("%");
-  // Serial.print("Compensation:  0x"); Serial.println(get_fuel_gauge().compensation(), HEX);
-  Serial.println();
-}
+MAX1704X FuelGauge = MAX1704X(MAX17043_mV);
 
 // ============================================================================
 // ESPNOW Callbacks: ISR-Like, Highest Priority
@@ -365,7 +348,7 @@ void setup() {
     "Gait",               // Task name
     4096,                 // Stack size (bytes) - larger for gait logic
     NULL,                 // Parameters
-    3,                    // Priority (high - manages movement)
+    4,                    // Priority (max - manages movement)
     NULL                  // Task handle
   );
   if (taskCreated != pdPASS) {
@@ -421,10 +404,10 @@ void setup() {
   esp_now_register_recv_cb(onRecv);  // Set up callback when data is received.
 
   // MAX17043 Init
-  if (get_fuel_gauge().begin()){
-    get_fuel_gauge().reset(); // Reset the device.
+  if (FuelGauge.begin()){
+    FuelGauge.reset(); // Reset the device.
     delay(250);
-    get_fuel_gauge().quickstart();
+    FuelGauge.quickstart();
     delay(125);
     displayReading(); // Display an initial reading.
   } else{

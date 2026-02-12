@@ -10,7 +10,7 @@
 
 */
 
-enum CommandType {
+enum CommandType : uint8_t {
   MOVE,
   BATTERY,
   RECORD,
@@ -23,6 +23,7 @@ enum CommandType {
 
 union MessagePayload_t {
   int32_t ints;
+  float floats;
 };
 
 class Message {
@@ -34,6 +35,7 @@ class Message {
 
     uint8_t GetPayloadLen();
     int32_t *GetPayloadInts();
+    float *GetPayloadFloats();
 
   private:
     CommandType cmd;

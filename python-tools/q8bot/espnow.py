@@ -26,7 +26,8 @@ class Commands(Enum):
     SEND_RECORDED = 3
     JUMP = 4
     SET_TORQUE = 5
-    SET_GAIT = 6
+    SET_PROFILE = 6
+    SET_GAIT = 7
 
 class q8_espnow:
     def __init__(self, port, joint_list = DEFAULT_JOINTLIST, baud = 115200):
@@ -67,9 +68,11 @@ class q8_espnow:
         return True
     
     def start_gait(self, gait_name: str, gait_direction: str):
-        gait_id = list(GAITS.keys()).index(gait_name) * len(GAIT_DIRECTIONS) + GAIT_DIRECTIONS.index(gait_direction)
+        self._set_profile(0)
+        
+        gait_id = GAIT_DIRECTIONS.index(gait_direction) * len(list(GAITS.keys())) + list(GAITS.keys()).index(gait_name)
 
-        self.serialHandler.write(struct.pack(MESSAGE_FORMAT, Commands.SET_GAIT.value, 1) + struct.pack("<B", gait_id))
+        self.serialHandler.write(struct.pack(MESSAGE_FORMAT, Commands.SET_GAIT.value, 1) + struct.pack("<i", gait_id))
         return True
     
     def stop_gait(self):
@@ -81,13 +84,12 @@ class q8_espnow:
         try:
             values = []
 
-            values += map(int, joints_pos)
+            values += map(float, joints_pos)
             assert len(values) == 8
 
-            if dur > 0:
-                self._set_profile(dur)
+            self._set_profile(dur)
 
-            self.serialHandler.write(struct.pack(MESSAGE_FORMAT, Commands.MOVE.value, 8) + struct.pack("<8i", *values))
+            self.serialHandler.write(struct.pack(MESSAGE_FORMAT, Commands.MOVE.value, 8) + struct.pack("<8f", *values))
 
             if record:
                 self.record_data()

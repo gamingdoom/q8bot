@@ -73,8 +73,8 @@ class q8Dynamixel
     int32_t _highArray[8];
     const float _jumpRest[2]  = {30, 150};
     int32_t _restArray[8];
-    gait_t _gait;
-    uint16_t _gaitStepIdx = 0;
+    gait_t _gait = TROT_f;
+    uint32_t _gaitStepIdx = 0;
     bool _using_gait = false;
 
     // Struct definitions for br (bulk read) and bw (bulk write)
